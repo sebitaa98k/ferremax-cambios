@@ -1,0 +1,113 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">Ferremax</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+            data-bs-target="#navbarNav" aria-controls="navbarNav"
+            aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        {% if request.path != "/login/" and request.path != "/register/" %}
+        <li class="nav-item">
+          <form class="d-flex" role="search">
+            <input class="form-control me-2" type="search" placeholder="Buscar Producto" aria-label="Search">
+          </form>
+        </li>
+        
+
+        <li class="nav-item">
+          <a class="nav-link active" href="{% url 'catalogo' %}">Catalogo</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link active" href="{% url 'ver-carrito' %}">Carrito</a>
+        </li>
+        {% endif %}
+
+        <!-- Mostrar el nombre de usuario al lado del botón de cerrar sesión -->
+        <li class="nav-item" id="user-name-section" style="display: none;">
+          <span class="nav-link" id="username">Usuario</span>
+        </li>
+
+        <!-- Mostrar el botón de cerrar sesión solo si el token existe -->
+        <li class="nav-item" id="logout-section" style="display: none;">
+          <a class="nav-link" href="#" id="logout-btn">Cerrar sesión</a>
+        </li>
+
+        <!-- Si no hay token, mostrar login y registro -->
+        <li class="nav-item" id="login-section">
+          <a class="nav-link" href="{% url 'login' %}">Login</a>
+        </li>
+        <li class="nav-item" id="register-section">
+          <a class="nav-link" href="{% url 'register' %}">Registrarse</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+      // Función para obtener el valor de la cookie por su nombre
+      function getCookie(name) {
+          let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+          if (match) return match[2];
+          return null;
+      }
+
+      // Función para decodificar el JWT y extraer el user_id
+      function getUserIdFromToken(token) {
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+          const payload = JSON.parse(jsonPayload);
+          return payload.user_id;  // Aquí extraemos el user_id
+      }
+
+      // Función para obtener el nombre de usuario a partir del user_id
+      async function fetchUsername(userId) {
+          const response = await fetch(`/api/get_username/${userId}/`);
+          const data = await response.json();
+          return data.username;  // Suponiendo que tu API retorna { username: "sebitaa" }
+      }
+
+      // Leer el token de la cookie
+      const token = getCookie('access_token');
+      const logoutSection = document.getElementById('logout-section');
+      const loginSection = document.getElementById('login-section');
+      const registerSection = document.getElementById('register-section');
+      const userNameSection = document.getElementById('user-name-section');
+      const userNameDisplay = document.getElementById('username');
+
+      if (token) {
+          // Si el token existe, mostramos el nombre de usuario y el botón de cerrar sesión
+          const userId = getUserIdFromToken(token);  // Decodificamos el token para obtener el user_id
+
+          // Obtener el nombre de usuario desde la API usando el user_id
+          fetchUsername(userId).then(username => {
+              userNameDisplay.textContent = `${username}`;  // Mostramos el nombre de usuario
+              logoutSection.style.display = 'block';
+              userNameSection.style.display = 'block';  // Mostrar el nombre de usuario
+              loginSection.style.display = 'none';
+              registerSection.style.display = 'none';
+          });
+
+      } else {
+          // Si no hay token, mostramos login y registro
+          logoutSection.style.display = 'none';
+          userNameSection.style.display = 'none';
+          loginSection.style.display = 'block';
+          registerSection.style.display = 'block';
+      }
+
+      // Función para eliminar la cookie (Cerrar sesión)
+      document.getElementById('logout-btn').addEventListener('click', function() {
+          document.cookie = 'access_token=; Max-Age=0; path=/';  // Eliminar la cookie
+          window.location.href = '/login';  // Redirigir al login después de cerrar sesión
+      });
+  });
+</script>

@@ -1,0 +1,62 @@
+.login-container {
+    background-color: #1b1b1c;
+    padding: 20px;  /* Reducimos el padding para hacerlo más compacto */
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 350px;  /* Reducimos el ancho máximo para que no sea tan grande */
+    margin: 30px auto;  /* Menos margen superior */
+}
+
+.login-container h3 {
+    color: white;
+    text-align: center;
+    margin-bottom: 15px;  /* Menos espacio entre el título y el formulario */
+}
+
+.form-label {
+    color: rgb(255, 255, 255);  /* Texto blanco para las etiquetas */
+    font-weight: bold;
+    margin-bottom: 5px;  /* Espacio debajo de las etiquetas */
+}
+
+.form-control {
+    background-color: #f7f7f7;  /* Fondo claro para los campos de entrada */
+    color: #333;
+    border-color: #ddd;
+    border-radius: 5px;
+    padding: 10px;  /* Reducimos el padding en los campos de entrada */
+    margin-bottom: 15px;  /* Reducimos el espacio entre los campos */
+    width: 100%;
+    font-size: 14px;
+}
+
+.form-control:focus {
+    border-color: #3498db;  /* Cambio de borde al estar enfocado */
+    outline: none;
+}
+
+.btn-primary {
+    background-color: #000000;
+    border-color: #515253;
+    color: rgb(255, 255, 255);
+    width: 100%;
+    padding: 10px;  /* Reducimos el padding del botón */
+    border-radius: 5px;
+    font-size: 14px;  /* Reducimos el tamaño de la fuente */
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background-color: #222324;
+    border-color: #555555;
+}
+
+.alert {
+    color: white;
+    background-color: #e74c3c;
+    border-radius: 5px;
+    padding: 10px;
+    margin-top: 15px;  /* Menos margen superior para los mensajes de error */
+}
