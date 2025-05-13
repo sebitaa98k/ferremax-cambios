@@ -15,8 +15,6 @@
         {% block content %}{% endblock %}
     </div>
 
-
-
     <div class="container my-5">
         <div class="row row-cols-1 row-cols-md-5 g-4 justify-content-center">
             {% for producto in productos %}
@@ -36,41 +34,37 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
     <script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Función para obtener el valor de la cookie por su nombre
+    // Función para obtener el valor de la cookie por su nombre (de tu amigo)
     function getCookie(name) {
-        let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-        if (match) return match[2];
-        return null;
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
     }
-
-    // Obtener el token de la cookie
-    const token = getCookie('access_token');
-    console.log("Token: ", token);  // Asegúrate de que el token sea correcto
-
-    // Función para obtener el ID del producto
-    const addToCartButtons = document.querySelectorAll('.add-to-cart');
-    addToCartButtons.forEach(button => {
-        button.addEventListener('click', function (event) {
-            event.preventDefault();
-            const productId = button.getAttribute('data-id');  // Obtener el ID del producto
-            const quantity = 1;  // Puede modificarse si se permite elegir cantidad
-            agregarAlCarrito(productId, quantity);
-        });
-    });
 
     // Función para agregar al carrito
     function agregarAlCarrito(productId, quantity) {
-        if (!token) {
+        const sessionid = getCookie('sessionid');  // Obtener la cookie 'sessionid' de Django
+
+        if (!sessionid) {
             alert('Por favor, inicia sesión para agregar productos al carrito.');
             return;
         }
 
-        fetch('http://127.0.0.1:8000/carrito/api/carrito/',{
+        // Si el usuario está autenticado (sessionid está presente), procesamos la solicitud
+        fetch('/carrito/api/carrito/', {
             method: 'POST',
-            headers:{
-                'Authorization': `Bearer ${getCookie('access_token')}`, 
-                'Content-Type': 'application/json'
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),  // Añadimos el CSRF token también
             },
             body: JSON.stringify({
                 producto: productId,
@@ -80,15 +74,29 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
             console.log('Producto agregado al carrito:', data);
+            if (data.error) {
+                alert(data.error);
+            } else {
+                alert('Producto añadido al carrito.');
+            }
         })
         .catch(error => {
             console.error('Error al agregar al carrito:', error);
         });
     }
-});
+
+    // Función para obtener el ID del producto y manejar el evento de clic
+    document.addEventListener('DOMContentLoaded', function () {
+        const addToCartButtons = document.querySelectorAll('.add-to-cart');
+        addToCartButtons.forEach(button => {
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+                const productId = button.getAttribute('data-id');
+                const quantity = 1;  // Puedes modificar la cantidad si es necesario
+                agregarAlCarrito(productId, quantity);
+            });
+        });
+    });
     </script>
 </body>
-<footer>
-
-</footer>
 </html>

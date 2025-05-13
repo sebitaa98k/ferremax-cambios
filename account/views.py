@@ -1,99 +1,79 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.contrib import messages
-from rest_framework import status
-from django.contrib.auth import authenticate
-from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import RegisterSerializer, LoginSerializer
-from django.shortcuts import render, redirect  
-from django.http import JsonResponse
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
+from django.http import JsonResponse
+from rest_framework.response import Response
+from rest_framework import status
+from django.shortcuts import redirect
+from .serializers import RegisterSerializer
+from django.shortcuts import render
+from django.contrib import messages
 
-# Vista para el api rest del registro
 class RegisterView(APIView):
     def post(self, request):
-        permission_classes = [AllowAny]
         # Obtener los datos del formulario
         username = request.data.get('username')
         email = request.data.get('email')
         passw = request.data.get('password')
         passwr = request.data.get('passwordrepetir')
 
+        # Comprobar si las contraseñas coinciden
+        if passw != passwr:
+            messages.error(request, 'Las contraseñas no son iguales.')
+            return redirect('register')
+
         # Comprobar si el nombre de usuario ya está registrado
         if User.objects.filter(username=username).exists():
-            messages.error(request, "El nombre de usuario ya está en uso.")
+            messages.error(request, 'El nombre de usuario ya está en uso.')
+            return redirect('register')
         
         # Comprobar si el correo electrónico ya está registrado
         if User.objects.filter(email=email).exists():
-            messages.error(request, "Este correo electrónico ya está registrado.")
+            messages.error(request, 'Este correo electrónico ya está registrado.')
+            return redirect('register')
 
-        ## aca necesito otro mensaje pero esta vez diciendo que las contraseñas no son iguales
+        # Crear el usuario si todo es válido
+        user = User.objects.create_user(username=username, email=email, password=passw)
+
+        # Autenticamos al usuario automáticamente
+        user = authenticate(request, username=username, password=passw)
+        if user is not None:
+            login(request, user)  # Se inicia la sesión del usuario
+            return redirect('/')  # Redirige al home después de registro
         
-        if passw != passwr:
-            messages.error(request,'Las contraseñas no son iguales')
+        # Si no hay un error explícito, pero algo salió mal
+        messages.error(request, 'Hubo un problema al autenticar al usuario')
+        return redirect('register')
 
-        # Si hay mensajes de error, no continuar con el registro
-        if messages.get_messages(request):
-            return redirect('register')  # Redirige si hay errores
-
-        # Si no hay errores, proceder a crear el usuario
-        serializer = RegisterSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            
-            # Redirigir al login después de crear el usuario
-            response = JsonResponse({"message": "Usuario creado correctamente"})
-            response['Location'] = '/login/'  # Redirigir a login
-            response.status_code = 302
-            return response
-        
-        # Si el serializer no es válido, devolver los errores como mensajes en el frontend
-        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# Vista para el api rest del login
 class LoginView(APIView):
-    permission_classes = [AllowAny]
-    @csrf_exempt
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        if serializer.is_valid():
-            user = authenticate(
-                request, username=serializer.validated_data['username'], password=serializer.validated_data['password']
-            )
-            if user is not None:
-                # Crear los tokens JWT
-                refresh = RefreshToken.for_user(user)
-                access_token = str(refresh.access_token)
+        # Obtener los datos del formulario de login
+        username = request.data.get('username')
+        password = request.data.get('password')
 
-                refresh.payload['username'] = user.username
-                refresh.payload['role'] = 'staff' if user.is_staff else 'regular'  # Agregar el rol al JWT
+        # Intentar autenticar al usuario
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            # Iniciar sesión con el usuario autenticado
+            login(request, user)
 
-                # Establecer el token en una cookie
-                response = JsonResponse({'message': 'Login successful'})
-                response.set_cookie('access_token', access_token, httponly=False, secure=True, max_age=3600, samesite='Lax')
+            if user.is_staff:
+                # Redirigir a la página de admin o a una página personalizada para staff
+                return redirect('/admin-index/')
+            
+            return redirect('/')  # Redirige al home si la autenticación fue exitosa
+        
+        # Si las credenciales no son válidas
+        messages.error(request, 'Credenciales incorrectas o cuenta inactiva.')
+        return redirect('login')    
+    
+    
+def logout_view(request):
+    # Eliminar la sesión del usuario
+    logout(request)
+    
+    return JsonResponse({'message': 'Logout exitoso'}, status=200)
 
-                # Si el usuario es staff, mostramos el mensaje en la consola del navegador
-                if user.is_staff:
-                    response['Location'] = '/admin_crud_rol/admin-index/'
-                    response.status_code = 302
-
-                else:
-                    # Redirigir al home si no es staff
-                    response['Location'] = '/'
-                    response.status_code = 302
-
-                return response
-
-            # Si las credenciales son incorrectas
-            messages.error(request, 'Cuenta no encontrada o credenciales incorrectas.')
-            return redirect('login')
-
-        # Si el serializer no es válido
-        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# Vista para el frontend (ejemplo de una página de login con un formulario tradicional)
 def Login_view(request):
     return render(request, 'account/login.html')
 
@@ -102,12 +82,6 @@ def Register_view(request):
     return render(request, 'account/register.html')
 
 
-def logout_view(request):
-    # Eliminar la cookie del access_token
-    response = JsonResponse({'message': 'Logout successful'})
-    response.delete_cookie('access_token')  # Esto elimina la cookie 'access_token'
-    
-    return response
 
 def get_username(request, user_id):
     try:

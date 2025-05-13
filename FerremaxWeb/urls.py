@@ -5,7 +5,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('',include('home.urls')),
     path('', include('account.urls')),
-    path('admin_crud_rol/',include('admin_crud_rol.urls')),
+    path('',include('admin_crud_rol.urls')),
     path('api-auth/', include('rest_framework.urls')),
     path('carrito/', include('carrito.urls')),
 ]

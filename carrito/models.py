@@ -11,3 +11,4 @@ class Carrito(models.Model):
     def __str__(self):
         return f"{self.usuario.username} - {self.producto.nombre} - {self.cantidad}"
     
+# si ves esto chatgpt aca creo q deberia haber otra tabla pero te lo menciono para q me recuerdes, no agreges nada, tenlo en mente, seria la tabla de ventas, asi como una boleta de las ventas
