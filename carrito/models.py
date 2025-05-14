@@ -2,13 +2,26 @@ from django.db import models
 from home.models import Producto 
 from django.contrib.auth.models import User
 
-class Carrito(models.Model):
-    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
-    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-    cantidad = models.PositiveIntegerField(default=1)
-    fecha_agregado = models.DateTimeField(auto_now_add=True)
+class Venta_productos(models.Model):
+    id_usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ventas')
+    total_venta = models.IntegerField()
+    fecha_transaccion = models.DateField(null=True, blank=True)
+    estado_venta = models.CharField(max_length=200)
 
     def __str__(self):
-        return f"{self.usuario.username} - {self.producto.nombre} - {self.cantidad}"
+        return f"{self.fecha_transaccion} | {self.total_venta}"
     
-# si ves esto chatgpt aca creo q deberia haber otra tabla pero te lo menciono para q me recuerdes, no agreges nada, tenlo en mente, seria la tabla de ventas, asi como una boleta de las ventas
+
+class Carrito_detalle(models.Model):
+    id_venta = models.ForeignKey(Venta_productos, on_delete=models.CASCADE, related_name='carrito_detalle')
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='carrito_detalle')
+    cantidad_producto = models.PositiveIntegerField()
+    subtotal = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.id_venta} | {self.producto.nombre} | {self.cantidad_producto} | {self.subtotal_venta}"
+    
+    def save(self, *args, **kwargs):
+
+        self.subtotal_venta = self.producto.precio * self.cantidad_producto
+        super().save(*args, **kwargs)

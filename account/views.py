@@ -5,68 +5,103 @@ from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import redirect
-from .serializers import RegisterSerializer
+from .serializers import RegisterSerializer, LoginSerializer
 from django.shortcuts import render
 from django.contrib import messages
+from carrito.models import Venta_productos 
+from rest_framework.authtoken.models import Token
+from django.utils import timezone
 
-class RegisterView(APIView):
+class RegisterApiView(APIView):
     def post(self, request):
         # Obtener los datos del formulario
         username = request.data.get('username')
         email = request.data.get('email')
-        passw = request.data.get('password')
-        passwr = request.data.get('passwordrepetir')
-
-        # Comprobar si las contraseñas coinciden
-        if passw != passwr:
-            messages.error(request, 'Las contraseñas no son iguales.')
-            return redirect('register')
-
-        # Comprobar si el nombre de usuario ya está registrado
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'El nombre de usuario ya está en uso.')
-            return redirect('register')
-        
-        # Comprobar si el correo electrónico ya está registrado
-        if User.objects.filter(email=email).exists():
-            messages.error(request, 'Este correo electrónico ya está registrado.')
-            return redirect('register')
-
-        # Crear el usuario si todo es válido
-        user = User.objects.create_user(username=username, email=email, password=passw)
-
-        # Autenticamos al usuario automáticamente
-        user = authenticate(request, username=username, password=passw)
-        if user is not None:
-            login(request, user)  # Se inicia la sesión del usuario
-            return redirect('/')  # Redirige al home después de registro
-        
-        # Si no hay un error explícito, pero algo salió mal
-        messages.error(request, 'Hubo un problema al autenticar al usuario')
-        return redirect('register')
-
-class LoginView(APIView):
-    def post(self, request):
-        # Obtener los datos del formulario de login
-        username = request.data.get('username')
         password = request.data.get('password')
+        password_repeated = request.data.get('passwordrepetir')
 
-        # Intentar autenticar al usuario
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            # Iniciar sesión con el usuario autenticado
+        if password != password_repeated:
+            messages.error(request, "Las contraseñas no coinciden.")
+            return redirect('register')
+
+
+        if User.objects.filter(email=email).exists():
+            messages.error(request, "El correo electrónico ya está en uso.")
+            return redirect('register')
+
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "El nombre de usuario ya está en uso.")
+            return redirect('register')
+
+
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+
             login(request, user)
 
-            if user.is_staff:
-                # Redirigir a la página de admin o a una página personalizada para staff
-                return redirect('/admin-index/')
-            
-            return redirect('/')  # Redirige al home si la autenticación fue exitosa
+
+            token, created = Token.objects.get_or_create(user=user)
+
+            # Redirigir después de un registro exitoso
+            return redirect('/')
         
-        # Si las credenciales no son válidas
-        messages.error(request, 'Credenciales incorrectas o cuenta inactiva.')
-        return redirect('login')    
+
+        # Si el serializer no es válido, se redirige al registro con los errores
+        for field, errors in serializer.errors.items():
+            for error in errors:
+                messages.error(request, error)
+
+        return redirect('register') 
     
+
+class LoginApiView(APIView):
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            login(request, user)
+
+            token, created = Token.objects.get_or_create(user=user)
+
+            response =  Response({
+                'status': 'success',
+                'message': 'Inicio de sesión exitoso',
+                'token': token.key,
+                'redirect_url': '/'
+            },status=status.HTTP_200_OK)
+        
+            response.set_cookie('access_token', token.key, httponly=True, secure=False, max_age=3600, samesite='Lax')
+
+            return response
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def Login_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        
+        user = authenticate(username=username, password= password)
+        login(request, user)
+
+        if not Venta_productos.objects.filter(id_usuario=user, estado_venta='carrito').exists():
+                Venta_productos.objects.create(
+                    id_usuario=user,
+                    fecha_transaccion=timezone.now(),
+                    total_venta=0.00,
+                    estado_venta='carrito'
+                )
+
+
+        return redirect('/')
+    
+    return render(request, 'account/login.html')
+
+
     
 def logout_view(request):
     # Eliminar la sesión del usuario
@@ -74,8 +109,6 @@ def logout_view(request):
     
     return JsonResponse({'message': 'Logout exitoso'}, status=200)
 
-def Login_view(request):
-    return render(request, 'account/login.html')
 
 
 def Register_view(request):

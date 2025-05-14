@@ -1,14 +1,11 @@
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .api import CarritoViewSet
-from .views import view_carrito
+from . import views
 
-# Crear un router y registrar el viewset del carrito
-router = DefaultRouter()
-router.register(r'carrito', CarritoViewSet)
-
-# Incluir las rutas generadas por el router
 urlpatterns = [
-    path('api/', include(router.urls)),
-    path('ver-carrito/', view_carrito, name='ver-carrito')
+
+    path('carrito/', views.vista_carrito, name='vista_carrito'),
+    path('api/carrito/', views.carrito_get_post, name='carrito_get_post'),
+    path('api/carrito/eliminar/<int:detalle_id>/', views.eliminar_o_disminuir_producto, name='eliminar_o_disminuir_producto'),
+    path('api/carrito/actualizar/<int:detalle_id>/', views.actualizar_cantidad_producto, name='actualizar_cantidad_producto'),
+    
 ]

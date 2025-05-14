@@ -1,83 +1,184 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Carrito
+from rest_framework.decorators import api_view
+from .models import Venta_productos, Carrito_detalle
 from home.models import Producto
 from django.contrib.auth.decorators import login_required
 from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import render
-from .serializers import CarritoSerializer
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from .serializers import VentaSerializer, CarritoDetalleSerializer
 
-
-
-def view_carrito(request):    
-    carrito = Carrito.objects.filter(usuario=request.user)
-
-    for item in carrito:
-        item.total = item.producto.precio * item.cantidad 
-
-    return render(request, 'carrito/carrito.html', {'carrito':carrito})
-
-class CarritoViewSet(APIView):
-    permission_classes = [IsAuthenticated]  # Solo usuarios autenticados pueden acceder
-
-    def get(self, request):
-        # Solo obtener los elementos del carrito para el usuario autenticado
-        carrito = Carrito.objects.filter(usuario=request.user)
-        carrito_serializer = CarritoSerializer(carrito, many=True)
-        return Response(carrito_serializer.data)
-
-    class CarritoViewSet(APIView):
-        permission_classes = [IsAuthenticated]  # Solo usuarios autenticados pueden acceder
-
-    def get(self, request):
-        # Obtener el carrito del usuario autenticado
-        carrito = Carrito.objects.filter(usuario=request.user)
-        carrito_serializer = CarritoSerializer(carrito, many=True)
-        return Response(carrito_serializer.data)
-
-    def post(self, request):
-        # Obtener el usuario autenticado
-        user = request.user
-        producto_id = request.data.get('producto')
-        cantidad = request.data.get('cantidad')
-
-        if not producto_id or not cantidad:
-            return Response({"error": "Faltan datos del producto o cantidad"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Verifica si el producto existe
-        producto = Producto.objects.filter(id=producto_id).first()
-        if not producto:
-            return Response({"error": "Producto no encontrado"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Asigna el usuario autenticado al campo 'usuario' del carrito
-        carrito_item, created = Carrito.objects.get_or_create(
-            usuario=user,  # Aquí asignamos el usuario autenticado
-            producto=producto,
-            defaults={'cantidad': cantidad}
-        )
-
-        if not created:
-            # Si el producto ya existe en el carrito, actualizamos la cantidad
-            carrito_item.cantidad += cantidad
-            carrito_item.save()
-
-        return Response({"message": "Producto agregado al carrito", "carrito_id": carrito_item.id}, status=status.HTTP_201_CREATED)
-
-    def put(self, request, pk):
-        # Actualizar la cantidad del carrito
-        carrito_item = Carrito.objects.get(pk=pk, usuario=request.user)  # Solo el usuario puede editar su carrito
-        cantidad = request.data.get('cantidad')
-
-        if cantidad:
-            carrito_item.cantidad = cantidad
-            carrito_item.save()
-            return Response({"message": "Cantidad del producto actualizada"}, status=status.HTTP_200_OK)
+def vista_carrito(request):
+    if request.user.is_authenticated:
+        # Obtener la venta activa con estado 'carrito'
+        venta = Venta_productos.objects.filter(id_usuario=request.user, estado_venta='carrito').first()
         
-        return Response({"error": "No se proporcionó cantidad"}, status=status.HTTP_400_BAD_REQUEST)
+        if venta:
+            # Obtener los detalles del carrito
+            carrito = Carrito_detalle.objects.filter(id_venta=venta)
+            total_carrito = sum(item.subtotal for item in carrito)  # Calcular el total
+            return render(request, 'carrito/carrito.html', {
+                'carrito': carrito,
+                'total_carrito': total_carrito,
+            })
+        else:
+            return render(request, 'carrito/carrito.html', {'mensaje': 'No tienes productos en tu carrito.'})
+    else:
+        return render(request, 'carrito/carrito.html', {'mensaje': 'Por favor, inicia sesión para ver tu carrito.'})
+    
 
-    def delete(self, request, pk):
-        # "Borrar" el producto del carrito (actualizar 'activo' a False)
-        carrito_item = Carrito.objects.get(pk=pk, usuario=request.user)
-        carrito_item.delete()  # Esto eliminará el carrito del usuario
-        return Response({"message": "Producto eliminado del carrito"}, status=status.HTTP_200_OK)
+@api_view(['GET','POST'])
+def carrito_get_post(request):
+    if request.user.is_authenticated:
+        if request.method == 'GET':
+            venta = Venta_productos.objects.filter(id_usuario=request.user, estado_venta='carrito').first()
+            if venta:
+                serializer = VentaSerializer(venta)
+                return Response(serializer.data)
+            return Response({"detail":"No hay carritos abierto."}, status=status.HTTP_404_NOT_FOUND)
+        
+        elif request.method == 'POST':
+            venta = Venta_productos.objects.filter(
+                id_usuario=request.user,
+                fecha_compra=timezone.now(),
+                total_venta=0,
+                estado_venta='carrito'
+            ) 
+
+            detalles_data = request.data.get('detalles', [])
+            for detalle_data in detalles_data:
+                try:
+                    producto = Producto.objects.get(id=detalle_data['producto'])
+                    Carrito_detalle.objects.create(
+                        id_venta=venta,
+                        producto=producto,
+                        cantidad_producto=detalle_data['cantidad_producto'],
+                        subtotal=producto.precio * detalle_data['cantidad_producto']
+                    )
+                except Producto.DoesNotExist:
+                    return Response({"detail": "Producto no encontrado."}, status=status.HTTP_400_BAD_REQUEST)
+                
+            return Response({"message": "Carrito creado exitosamente."}, status=status.HTTP_201_CREATED)
+    return Response({"detail": "Usuario no autenticado."}, status=status.HTTP_401_UNAUTHORIZED)
+
+@api_view(['POST'])
+def agregar_carrito(request):
+    if request.user.is_authenticated:
+        try:
+            venta = Venta_productos.objects.filter(id_usuario=request.user, estado_venta='carrito').first()
+            if not venta:
+                venta = Venta_productos.objects.create(
+                    id_usuario=request.user,
+                    fecha_transaccion=timezone.now(),
+                    total_venta=0.00,
+                    estado_venta='carrito'
+                )
+            
+            producto_id = request.data.get('producto')
+            cantidad = request.data.get('cantidad_producto')
+
+            producto = Producto.objects.get(id=producto_id)
+            detalle_existente = Carrito_detalle.objects.filter(id_venta=venta, producto=producto).first()
+
+            if detalle_existente:
+                return Response({"detail": "Este producto ya está en tu carrito."}, status=status.HTTP_400_BAD_REQUEST)
+
+            Carrito_detalle.objects.create(
+                id_venta=venta,
+                producto=producto,
+                cantidad_producto=cantidad,
+                subtotal=producto.precio * cantidad
+            )
+            
+            venta.total_venta = sum(d.subtotal for d in venta.carrito_detalle.all())
+            venta.save()
+
+            return Response({"message": "Producto agregado al carrito exitosamente."})
+        except Producto.DoesNotExist:
+            return Response({"detail": "Producto no encontrado."}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"detail": f"Error al agregar producto al carrito: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    else:
+        return Response({"detail": "Usuario no autenticado."}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+@api_view(['POST'])
+def eliminar_o_disminuir_producto(request, detalle_id):
+    if request.user.is_authenticated:
+        try:
+            detalle = Carrito_detalle.objects.get(id=detalle_id)
+        except Carrito_detalle.DoesNotExist:
+            return Response({"detail": "Producto no encontrado en el carrito."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Si la cantidad es 1, eliminamos el producto del carrito
+        if detalle.cantidad_producto == 1:
+            detalle.delete()
+            venta = detalle.id_venta
+            venta.save()
+            venta.total_venta = sum(d.subtotal for d in venta.carrito_detalle.all())  # Aseguramos que la relación esté correcta
+
+            return redirect('vista_carrito')
+
+        # Si la cantidad es mayor a 1, decrementamos la cantidad
+        detalle.cantidad_producto -= 1
+        detalle.subtotal = detalle.producto.precio * detalle.cantidad_producto
+        detalle.save()
+
+        # Actualizamos el total de la venta
+        venta = detalle.id_venta
+        venta.total_venta = sum(d.subtotal for d in venta.carrito_detalle.all())
+        venta.save()
+
+        return Response({
+            "subtotal_venta": detalle.subtotal,
+            "total_carrito": venta.total_venta
+        })
+
+    return Response({"detail": "Usuario no autenticado."}, status=status.HTTP_401_UNAUTHORIZED)
+
+@api_view(['POST'])
+def actualizar_cantidad_producto(request, detalle_id):
+    if request.user.is_authenticated:
+        try:
+            detalle = Carrito_detalle.objects.get(id=detalle_id)
+        except Carrito_detalle.DoesNotExist:
+            return Response({"detail": "Producto no encontrado en el carrito."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Obtener la nueva cantidad del cuerpo de la solicitud
+        nueva_cantidad = request.data.get('cantidad_producto')
+
+        if nueva_cantidad <= 0:
+            return Response({"detail": "La cantidad debe ser mayor a cero."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verificar si la cantidad es mayor al stock disponible
+        if nueva_cantidad > detalle.producto.stock:
+            return Response({"detail": f"No hay suficiente stock. Solo quedan {detalle.producto.stock} unidades disponibles."},
+                             status=status.HTTP_400_BAD_REQUEST)
+
+        # Si la cantidad es 1, eliminamos el producto
+        if nueva_cantidad == 1:
+            detalle.delete()
+            venta = detalle.id_venta
+            venta.total_venta = sum(d.subtotal for d in venta.carrito_detalle.all())
+            venta.save()
+
+            return Response({"message": "Producto eliminado del carrito.", "total_carrito": venta.total_venta})
+
+        # Actualizamos la cantidad y el subtotal
+        detalle.cantidad_producto = nueva_cantidad
+        detalle.subtotal = detalle.producto.precio * nueva_cantidad
+        detalle.save()
+
+        # Actualizamos el total de la venta
+        venta = detalle.id_venta
+        venta.total_venta = sum(d.subtotal for d in venta.carrito_detalle.all())
+        venta.save()
+
+        return Response({
+            "subtotal_venta": detalle.subtotal,
+            "total_carrito": venta.total_venta
+        })
+
+    return Response({"detail": "Usuario no autenticado."}, status=status.HTTP_401_UNAUTHORIZED)

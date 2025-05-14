@@ -25,7 +25,7 @@
           <!-- Si el usuario está autenticado, mostramos el carrito y catalogo -->
 
           <li class="nav-item">
-            <a class="nav-link active" href="{% url 'ver-carrito' %}">Carrito</a>
+            <a class="nav-link active" href="{% url 'vista_carrito' %}">Carrito</a>
           </li>
 
           <!-- Nombre de usuario y logout -->
@@ -55,10 +55,3 @@
 </nav>
 
 
-<script>
-  document.getElementById('logout-btn').addEventListener('click', function() {
-    // Esto elimina la cookie de sesión manualmente, pero en la mayoría de los casos no es necesario
-    document.cookie = 'sessionid=; Max-Age=0; path=/';  // Eliminar la cookie de sesión de Django
-    window.location.href = '/login';  // Redirigir al login después de cerrar sesión
-});
-</script>
