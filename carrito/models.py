@@ -19,9 +19,12 @@ class Carrito_detalle(models.Model):
     subtotal = models.IntegerField()
 
     def __str__(self):
-        return f"{self.id_venta} | {self.producto.nombre} | {self.cantidad_producto} | {self.subtotal_venta}"
-    
-    def save(self, *args, **kwargs):
+        return f"{self.id_venta} | {self.producto.nombre} | {self.cantidad_producto} | {self.subtotal}"
 
-        self.subtotal_venta = self.producto.precio * self.cantidad_producto
+    def save(self, *args, **kwargs):
+        self.subtotal = self.producto.precio * self.cantidad_producto
         super().save(*args, **kwargs)
+
+    @property
+    def subtotal_venta(self):
+        return self.producto.precio * self.cantidad_producto
