@@ -7,5 +7,6 @@ class Producto(models.Model):
     descripcion = models.TextField()
     stock = models.IntegerField()
     imagen_url = models.URLField(null=True, blank=True)
+    estado = models.BooleanField(default=True)
     def __str__(self):
         return self.nombre

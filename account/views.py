@@ -97,7 +97,10 @@ def Login_view(request):
                 )
 
 
-        return redirect('/')
+        if user.is_staff:
+                return redirect('admin-index')  # Redirige al panel de administración
+        else:
+                return redirect('/')
     
     return render(request, 'account/login.html')
 

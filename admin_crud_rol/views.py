@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import user_passes_test
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_view(request):
+    
     productos = Producto.objects.all()  # Obtener todos los productos
     usuarios = User.objects.all()  # Obtener todos los usuarios
     return render(request, 'admin/admin-index.html', {'productos': productos, 'usuarios': usuarios})
