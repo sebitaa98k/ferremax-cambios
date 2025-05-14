@@ -3,9 +3,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
+from django.http import JsonResponse
 from home.models import Producto
 from home.serializers import ProductoSerializer
-from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.decorators import user_passes_test, login_required
+from rest_framework.decorators import api_view
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_view(request):
@@ -14,36 +18,34 @@ def admin_view(request):
     usuarios = User.objects.all()  # Obtener todos los usuarios
     return render(request, 'admin/admin-index.html', {'productos': productos, 'usuarios': usuarios})
 
-class ProductoView(APIView):
-    def get(self, request):
-        productos = Producto.objects.all()  # Obtener todos los productos
-        serializer = ProductoSerializer(productos, many=True)
-        return Response(serializer.data)
 
-    def post(self, request):
-        # Crear un nuevo producto
-        serializer = ProductoSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def put(self, request, pk):
-        # Actualizar un producto existente
-        producto = Producto.objects.get(pk=pk)
-        serializer = ProductoSerializer(producto, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk):
-        # "Borrar" un producto (actualizar 'activo' a False)
-        producto = Producto.objects.get(pk=pk)
-        producto.activo = False
-        producto.save()
-        return Response({"message": "Producto desactivado"}, status=status.HTTP_200_OK)
+@api_view(['POST'])
+def api_agregar_producto(request):
+    # Asegúrate de pasar el 'request' en el contexto al inicializar el serializer
+    serializer = ProductoSerializer(data=request.data, context={'request': request})
     
+    if serializer.is_valid():
+        serializer.save()  # Guardar el producto
+        return Response(serializer.data, status=status.HTTP_201_CREATED)  # Retornar el producto creado
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@csrf_exempt
+@require_http_methods(["PATCH"])
+@login_required(login_url='/login/')
+def producto_activo_desactivado(request, id):
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'No tienes permisos para modificar productos.'}, status=403)
+    
+    try:
+        producto = Producto.objects.get(id=id)
+        producto.estado =  not producto.estado
+        producto.save()
+        return JsonResponse({'mensaje': 'Estado del producto actualizado correctamente', 'estado': producto.estado}, status=200)
+    except Producto.DoesNotExist:
+        return JsonResponse({'error': 'Producto no encontrado'}, status=404)
+
+
+
 
 class UserAdminView(APIView):
     def put(self, request, pk):

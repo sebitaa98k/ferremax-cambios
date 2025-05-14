@@ -86,10 +86,9 @@
                     <td>{{ producto.estado|yesno:"Activo,Inactivo" }}</td>
                     <td>
                         <a href="#" class="btn btn-warning">Editar</a>
-                        <form action="{% url 'producto_detail' producto.id %}" method="post" style="display:inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-danger">Desabilitar</button>
-                        </form>
+
+                        <button type="submit" class="btn btn-danger" onclick="cambiarEstadoProducto({{ producto.id }})">Desabilitar</button>
+
                     </td>
                 </tr>
                 {% endfor %}
@@ -126,9 +125,114 @@
         </table>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
 
-    <script>
+<div class="toast-container position-fixed top-0 end-0 p-3">
+  <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header">
+      <strong class="me-auto">Producto actualizado</strong>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body">
+      El estado del producto se ha actualizado correctamente.
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
+
+<script>
+
+    function getCookie(name){
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== "") {
+                const cookies = document.cookie.split(";");
+                for (let cookie of cookies) {
+                    cookie = cookie.trim();
+                    if (cookie.startsWith(name + "=")) {
+                        cookieValue = decodeURIComponent(cookie.slice(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+
+    function cambiarEstadoProducto(id){
+
+            console.log('DEBERIA CAMBIAR')
+            const csrftoken = getCookie('csrftoken');
+
+            fetch(`/api/cambiar_activo/${id}/`,{
+                method: "PATCH",
+                credentials: "same-origin",
+                headers: {
+                    "X-CSRFToken": csrftoken
+            }
+            }).then( response => response.json())
+            .then(data=>{
+                const toastLiveExample = document.getElementById('liveToast');
+                const toast = new bootstrap.Toast(toastLiveExample);
+                toast.show();
+                location.reload();
+
+            }).catch(error => {
+                console.error("Error al actualizar producto:", error);
+                alert("Error al conectar con el servidor.");
+            });
+        }
+
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // Función para obtener el CSRF token
+        
+        const csrftoken = getCookie('csrftoken');
+
+        // Manejar el evento de envío del formulario
+        document.getElementById('form-producto').addEventListener("submit", function(event) {
+            event.preventDefault();  // Prevenir el envío por defecto del formulario
+
+            // Recoger los datos del formulario
+            const data = {
+                "nombre": document.getElementById("nombre").value,
+                "precio": document.getElementById("precio").value,
+                "descripcion": document.getElementById("descripcion").value,
+                "stock": document.getElementById("stock").value,
+                "imagen_url": document.getElementById("imagen").value,
+            }
+
+            // Enviar los datos al backend usando fetch
+            fetch('/api/productos/agregar', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.status === 403) {
+                    alert("Acceso denegado. Debes iniciar sesión como administrador.");
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert("Producto agregado correctamente!");
+                document.getElementById("form-producto").reset();  // Limpiar el formulario
+                const modal = bootstrap.Modal.getInstance(document.getElementById('formModal'));
+                modal.hide();  // Cerrar el modal
+                window.location.href = "/admin-index/";  // Redirigir a la página de administración
+            })
+            .catch(error => {
+                alert("Error al agregar el producto.");
+                console.error("Error:", error);
+            });
+        });
+
         // Mostrar el formulario al hacer clic en "Añadir Producto"
         document.querySelector('.add-product').addEventListener('click', function() {
             // Mostrar el modal con el formulario
@@ -136,18 +240,10 @@
             modal.show();
         });
 
-        // Puedes agregar más lógica para manejar el envío del formulario aquí
-        document.getElementById('form-producto').addEventListener('submit', function(event) {
-            event.preventDefault();  // Prevenir el envío por defecto del formulario
-            const formData = new FormData(this);
+        
+});
 
-            // Aquí iría el código para enviar los datos al backend (por ejemplo, usando fetch)
-            console.log('Formulario enviado:', formData);
 
-            // Luego de enviar los datos, cerrar el modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('formModal'));
-            modal.hide();
-        });
-    </script>
-</body>
-</html>
+    
+    
+</script>
