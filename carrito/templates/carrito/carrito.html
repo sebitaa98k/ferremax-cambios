@@ -2,6 +2,7 @@
 
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Carrito</title>
@@ -11,19 +12,25 @@
         body {
             background-color: #f8f9fa;
         }
+
         .container {
             margin-top: 50px;
         }
-        .table th, .table td {
+
+        .table th,
+        .table td {
             vertical-align: middle;
         }
+
         .table-striped tbody tr:nth-of-type(odd) {
             background-color: #f2f2f2;
         }
+
         .btn-custom {
             width: 120px;
             border-radius: 5px;
         }
+
         .toast-container {
             position: fixed;
             top: 10%;
@@ -32,13 +39,14 @@
         }
     </style>
 </head>
+
 <body>
 
     {% include 'home/navbar.html' %}
 
     <div class="container">
         <h1 class="text-center mb-4">Mi Carrito</h1>
-        
+
         <table class="table table-striped table-bordered shadow-sm rounded">
             <thead class="thead-dark">
                 <tr>
@@ -46,7 +54,6 @@
                     <th>Cantidad</th>
                     <th>Precio</th>
                     <th>Total</th>
-                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -54,15 +61,15 @@
                 <tr id="product-{{ item.id }}">
                     <td>{{ item.producto.nombre }}</td>
                     <td>
-                        <button class="btn btn-sm btn-secondary" id="decrement-{{ item.id }}" data-id="{{ item.id }}" data-cantidad="{{ item.cantidad_producto }}">-</button>
+                        <button class="btn btn-sm btn-secondary" id="decrement-{{ item.id }}" data-id="{{ item.id }}"
+                            data-cantidad="{{ item.cantidad_producto }}">-</button>
                         <span id="quantity-{{ item.id }}">{{ item.cantidad_producto }}</span>
-                        <button class="btn btn-sm btn-secondary" id="increment-{{ item.id }}" data-id="{{ item.id }}" data-cantidad="{{ item.cantidad_producto }}">+</button>
+                        <button class="btn btn-sm btn-secondary" id="increment-{{ item.id }}" data-id="{{ item.id }}"
+                            data-cantidad="{{ item.cantidad_producto }}">+</button>
                     </td>
                     <td>${{ item.producto.precio }}</td>
                     <td>${{ item.subtotal_venta }}</td>
-                    <td>
-                        <!-- Eliminar el formulario para el botón eliminar -->
-                    </td>
+
                 </tr>
                 {% endfor %}
             </tbody>
@@ -73,18 +80,20 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq"
+        crossorigin="anonymous"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Función para obtener la cookie CSRF
-            function getCookie(name){
+            function getCookie(name) {
                 let cookieValue = null;
-                if (document.cookie && document.cookie !== ""){
+                if (document.cookie && document.cookie !== "") {
                     const cookies = document.cookie.split(";");
-                    for(let cookie of cookies){
+                    for (let cookie of cookies) {
                         cookie = cookie.trim();
-                        if(cookie.startsWith(name + "=")){
+                        if (cookie.startsWith(name + "=")) {
                             cookieValue = decodeURIComponent(cookie.slice(name.length + 1));
                             break;
                         }
@@ -108,16 +117,41 @@
 
                 const data = await response.json();
                 if (response.ok) {
+                    // ✅ Actualiza cantidad visual
                     document.getElementById(`quantity-${detalleId}`).innerText = cantidad;
-                    alert(`Cantidad actualizada. Subtotal: $${data.subtotal_venta}. Total: $${data.total_carrito}`);
-                    // Si el producto se eliminó, eliminamos la fila
+
+                    // ✅ Actualiza data-cantidad en botones
+                    document.getElementById(`increment-${detalleId}`).setAttribute('data-cantidad', cantidad);
+                    document.getElementById(`decrement-${detalleId}`).setAttribute('data-cantidad', cantidad);
+
+                    // ✅ Actualiza subtotal en la tabla
+                    const fila = document.getElementById(`product-${detalleId}`);
+                    const celdas = fila.querySelectorAll('td');
+                    celdas[3].innerText = `$${data.subtotal_venta}`;
+
+                    // ✅ Actualiza el total del carrito
+                    document.querySelector('.d-flex h3').innerText = `Total Carrito: $${data.total_carrito}`;
+
+                    // ✅ Opcional: usar toast visual en vez de alert
+                    const successToast = new bootstrap.Toast(document.getElementById('toast-success'));
+                    document.getElementById('toast-success-body').innerText = `Cantidad actualizada`;
+                    successToast.show();
+
+                    // ✅ Eliminar fila si cantidad = 0
                     if (cantidad === 0) {
-                        document.getElementById(`product-${detalleId}`).remove();
+                        fila.remove();
                     }
+
                 } else {
-                    alert(data.detail || 'Error al actualizar cantidad');
+                    const errorToast = new bootstrap.Toast(document.getElementById('toast-error'));
+                    document.getElementById('toast-error-body').innerText = data.detail || 'Error al actualizar cantidad';
+                    errorToast.show();
                 }
             }
+
+
+
+
 
             // Asignamos eventos a los botones de + y -
             const buttonsIncrement = document.querySelectorAll('[id^="increment-"]');
@@ -147,6 +181,32 @@
             });
         });
     </script>
+<!-- Toast de éxito -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="toast-success" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">✔️ Actualizado</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        </div>
+        <div class="toast-body" id="toast-success-body">
+            Cantidad actualizada.
+        </div>
+    </div>
+</div>
+
+<!-- Toast de error -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="toast-error" class="toast bg-danger text-white" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-danger text-white">
+            <strong class="me-auto">❌ Error</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        </div>
+        <div class="toast-body" id="toast-error-body">
+            Hubo un problema.
+        </div>
+    </div>
+</div>
 
 </body>
+
 </html>

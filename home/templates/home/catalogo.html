@@ -19,58 +19,80 @@
     </div>
 
     <div class="container my-5">
-    <div class="row row-cols-1 row-cols-md-5 g-4 justify-content-center">
-        {% for producto in productos %}
-            {% if producto.estado%}
-            <div class="col">
-                <div class="card h-100">
-                    <img src="{{ producto.imagen_url }}" class="card-img-top img-fluid" alt="{{ producto.nombre }}"
-                        style="object-fit: cover; height: 200px;">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ producto.nombre }}</h5>
-                        <p class="card-text">${{ producto.precio }}</p>
-                        <p class="card-text">{{ producto.stock }}</p>
-                        <a href="#" class="btn btn-primary add-to-cart" data-id="{{ producto.id }}">Añadir Carrito</a>
+        <div class="row row-cols-1 row-cols-md-5 g-4 justify-content-center">
+            {% for producto in productos %}
+                {% if producto.estado %}
+                    <div class="col">
+                    <div class="card h-100">
+                        <img src="{{ producto.imagen_url }}" class="card-img-top img-fluid" alt="{{ producto.nombre }}"
+                            style="object-fit: cover; height: 200px;">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ producto.nombre }}</h5>
+                            <p class="card-text">${{ producto.precio }}</p>
+                            <p class="card-text">Stock: {{ producto.stock }}</p>
+                            <a href="#" class="btn btn-primary add-to-cart" data-id="{{ producto.id }}">Añadir Carrito</a>
+                        </div>
+                    </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+
+            <div class="toast-container position-fixed top-0 end-0 p-3">
+
+                <!-- TOAST DE EXITO -->
+                <div class="toast-container position-fixed top-0 end-0 p-3">
+                    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header">
+                            <strong class="me-auto">¡Éxito!</strong>
+                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body d-flex justify-content-between align-items-center">
+                            <span>Producto agregado al carrito exitosamente.</span>
+                            <a href="{% url 'vista_carrito' %}"
+                                class="btn btn-sm btn-outline-light ms-3 bg-primary text-white">Ver carrito</a>
+                        </div>
                     </div>
                 </div>
-            </div>    
-            {% endif%}    
-        {% endfor %}
 
-        <div class="toast-container position-fixed top-0 end-0 p-3">
-    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-            <strong class="me-auto">¡Éxito!</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-        <div class="toast-body">
-            Producto agregado al carrito exitosamente.
+                <!-- TOAST DE ERROR -->
+                <div class="toast-container position-fixed top-0 end-0 p-3">
+                    <div id="toast-error" class="toast bg-danger text-white" role="alert" aria-live="assertive"
+                        aria-atomic="true">
+                        <div class="toast-header bg-danger text-white">
+                            <strong class="me-auto">Error</strong>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"
+                                aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body" id="toast-error-body">
+                            Algo salió mal.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
         </div>
     </div>
-</div>
-
-    </div>
-</div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq"
         crossorigin="anonymous"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Función para obtener el valor de la cookie por su nombre
-           function getCookie(name){
-            let cookieValue = null
-            if (document.cookie && document.cookie !== ""){
-              const cookies = document.cookie.split(";");
-              for(let cookie of cookies){
-                cookie = cookie.trim()
-                if(cookie.startsWith(name + "=")){
-                  cookieValue = decodeURIComponent(cookie.slice(name.length + 1))
-                  break;
+            function getCookie(name) {
+                let cookieValue = null
+                if (document.cookie && document.cookie !== "") {
+                    const cookies = document.cookie.split(";");
+                    for (let cookie of cookies) {
+                        cookie = cookie.trim()
+                        if (cookie.startsWith(name + "=")) {
+                            cookieValue = decodeURIComponent(cookie.slice(name.length + 1))
+                            break;
+                        }
+                    }
                 }
-              }
+                return cookieValue
             }
-            return cookieValue
-          }
 
 
             // Función para agregar al carrito
@@ -82,8 +104,8 @@
                     return;
                 }
 
-                try{
-                    const response = await fetch("/api/carrito/agregar/",{
+                try {
+                    const response = await fetch("/api/carrito/agregar/", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -96,21 +118,24 @@
                     })
 
                     const data = await response.json();
-                    if(response.ok){
+                    if (response.ok) {
                         const toast = new bootstrap.Toast(document.getElementById('toast'));
                         toast.show();
 
-                    }else {
-                        alert(data.detail || 'Error al agregar al carrito');
+                    } else {
+                        const errorToast = new bootstrap.Toast(document.getElementById('toast-error'));
+                        document.getElementById('toast-error-body').innerText = data.detail || 'Error al agregar al carrito';
+                        errorToast.show();
                     }
 
-                }catch(error){
-                    console.error('Error: ',error);
+
+                } catch (error) {
+                    console.error('Error: ', error);
                     alert('Error al agregar el producto al carrito')
                 }
-                
+
             }
-            
+
 
             // Función para obtener el ID del producto y manejar el evento de clic
             const addToCartButtons = document.querySelectorAll('.add-to-cart');

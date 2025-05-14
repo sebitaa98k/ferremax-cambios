@@ -77,32 +77,52 @@ def agregar_carrito(request):
                 )
             
             producto_id = request.data.get('producto')
-            cantidad = request.data.get('cantidad_producto')
+            cantidad = int(request.data.get('cantidad_producto') or 0)
+
+            if cantidad <= 0:
+                return Response({"detail": "La cantidad debe ser mayor que cero."}, status=status.HTTP_400_BAD_REQUEST)
 
             producto = Producto.objects.get(id=producto_id)
+
             detalle_existente = Carrito_detalle.objects.filter(id_venta=venta, producto=producto).first()
 
             if detalle_existente:
-                return Response({"detail": "Este producto ya está en tu carrito."}, status=status.HTTP_400_BAD_REQUEST)
+                nueva_cantidad = detalle_existente.cantidad_producto + cantidad
 
-            Carrito_detalle.objects.create(
-                id_venta=venta,
-                producto=producto,
-                cantidad_producto=cantidad,
-                subtotal=producto.precio * cantidad
-            )
-            
+                if nueva_cantidad > producto.stock:
+                    return Response({
+                        "detail": f"No hay suficiente stock. Ya tienes {detalle_existente.cantidad_producto} y el stock total es {producto.stock}."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                detalle_existente.cantidad_producto = nueva_cantidad
+                detalle_existente.subtotal = producto.precio * nueva_cantidad
+                detalle_existente.save()
+                mensaje = "Cantidad actualizada en el carrito."
+            else:
+                if cantidad > producto.stock:
+                    return Response({
+                        "detail": f"No hay suficiente stock. Solo quedan {producto.stock} unidades disponibles."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                Carrito_detalle.objects.create(
+                    id_venta=venta,
+                    producto=producto,
+                    cantidad_producto=cantidad,
+                    subtotal=producto.precio * cantidad
+                )
+                mensaje = "Producto agregado al carrito exitosamente."
+
             venta.total_venta = sum(d.subtotal for d in venta.carrito_detalle.all())
             venta.save()
 
-            return Response({"message": "Producto agregado al carrito exitosamente."})
+            return Response({"message": mensaje})
+
         except Producto.DoesNotExist:
             return Response({"detail": "Producto no encontrado."}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"detail": f"Error al agregar producto al carrito: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
         return Response({"detail": "Usuario no autenticado."}, status=status.HTTP_401_UNAUTHORIZED)
-
 
 @api_view(['POST'])
 def eliminar_o_disminuir_producto(request, detalle_id):
