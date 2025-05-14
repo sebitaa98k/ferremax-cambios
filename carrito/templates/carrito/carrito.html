@@ -1,0 +1,212 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Carrito</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            margin-top: 50px;
+        }
+
+        .table th,
+        .table td {
+            vertical-align: middle;
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: #f2f2f2;
+        }
+
+        .btn-custom {
+            width: 120px;
+            border-radius: 5px;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 10%;
+            right: 10%;
+            z-index: 1050;
+        }
+    </style>
+</head>
+
+<body>
+
+    {% include 'home/navbar.html' %}
+
+    <div class="container">
+        <h1 class="text-center mb-4">Mi Carrito</h1>
+
+        <table class="table table-striped table-bordered shadow-sm rounded">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Precio</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in carrito %}
+                <tr id="product-{{ item.id }}">
+                    <td>{{ item.producto.nombre }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary" id="decrement-{{ item.id }}" data-id="{{ item.id }}"
+                            data-cantidad="{{ item.cantidad_producto }}">-</button>
+                        <span id="quantity-{{ item.id }}">{{ item.cantidad_producto }}</span>
+                        <button class="btn btn-sm btn-secondary" id="increment-{{ item.id }}" data-id="{{ item.id }}"
+                            data-cantidad="{{ item.cantidad_producto }}">+</button>
+                    </td>
+                    <td>${{ item.producto.precio }}</td>
+                    <td>${{ item.subtotal_venta }}</td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-end mt-3">
+            <h3>Total Carrito: ${{ total_carrito }}</h3>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq"
+        crossorigin="anonymous"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Función para obtener la cookie CSRF
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== "") {
+                    const cookies = document.cookie.split(";");
+                    for (let cookie of cookies) {
+                        cookie = cookie.trim();
+                        if (cookie.startsWith(name + "=")) {
+                            cookieValue = decodeURIComponent(cookie.slice(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            // Función para actualizar la cantidad de producto
+            async function actualizarCantidad(detalleId, cantidad) {
+                const response = await fetch(`/api/carrito/actualizar/${detalleId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({
+                        cantidad_producto: cantidad
+                    }),
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    // ✅ Actualiza cantidad visual
+                    document.getElementById(`quantity-${detalleId}`).innerText = cantidad;
+
+                    // ✅ Actualiza data-cantidad en botones
+                    document.getElementById(`increment-${detalleId}`).setAttribute('data-cantidad', cantidad);
+                    document.getElementById(`decrement-${detalleId}`).setAttribute('data-cantidad', cantidad);
+
+                    // ✅ Actualiza subtotal en la tabla
+                    const fila = document.getElementById(`product-${detalleId}`);
+                    const celdas = fila.querySelectorAll('td');
+                    celdas[3].innerText = `$${data.subtotal_venta}`;
+
+                    // ✅ Actualiza el total del carrito
+                    document.querySelector('.d-flex h3').innerText = `Total Carrito: $${data.total_carrito}`;
+
+                    // ✅ Opcional: usar toast visual en vez de alert
+                    const successToast = new bootstrap.Toast(document.getElementById('toast-success'));
+                    document.getElementById('toast-success-body').innerText = `Cantidad actualizada`;
+                    successToast.show();
+
+                    // ✅ Eliminar fila si cantidad = 0
+                    if (cantidad === 0) {
+                        fila.remove();
+                    }
+
+                } else {
+                    const errorToast = new bootstrap.Toast(document.getElementById('toast-error'));
+                    document.getElementById('toast-error-body').innerText = data.detail || 'Error al actualizar cantidad';
+                    errorToast.show();
+                }
+            }
+
+
+
+
+
+            // Asignamos eventos a los botones de + y -
+            const buttonsIncrement = document.querySelectorAll('[id^="increment-"]');
+            const buttonsDecrement = document.querySelectorAll('[id^="decrement-"]');
+
+            buttonsIncrement.forEach(button => {
+                button.addEventListener('click', function () {
+                    const detalleId = button.getAttribute('data-id');
+                    const cantidadActual = parseInt(button.getAttribute('data-cantidad'));
+                    const nuevaCantidad = cantidadActual + 1;
+                    actualizarCantidad(detalleId, nuevaCantidad);
+                });
+            });
+
+            buttonsDecrement.forEach(button => {
+                button.addEventListener('click', function () {
+                    const detalleId = button.getAttribute('data-id');
+                    const cantidadActual = parseInt(button.getAttribute('data-cantidad'));
+                    const nuevaCantidad = cantidadActual - 1;
+                    if (nuevaCantidad >= 1) {
+                        actualizarCantidad(detalleId, nuevaCantidad);
+                    } else {
+                        // Si la cantidad es 0, eliminamos el producto
+                        actualizarCantidad(detalleId, 0);
+                    }
+                });
+            });
+        });
+    </script>
+<!-- Toast de éxito -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="toast-success" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">✔️ Actualizado</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        </div>
+        <div class="toast-body" id="toast-success-body">
+            Cantidad actualizada.
+        </div>
+    </div>
+</div>
+
+<!-- Toast de error -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="toast-error" class="toast bg-danger text-white" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-danger text-white">
+            <strong class="me-auto">❌ Error</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        </div>
+        <div class="toast-body" id="toast-error-body">
+            Hubo un problema.
+        </div>
+    </div>
+</div>
+
+</body>
+
+</html>

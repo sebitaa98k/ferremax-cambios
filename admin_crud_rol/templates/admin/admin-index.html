@@ -1,0 +1,153 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Administración</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .modal-dialog {
+            max-width: 800px;
+        }
+    </style>
+</head>
+<body>
+    {% include 'home/navbar.html' %}
+
+    <div class="container mt-5">
+        <h3>Panel de Administración - Productos</h3>
+        
+        <!-- Botón para mostrar el formulario -->
+        <button type="button" class="btn btn-success add-product" data-bs-toggle="modal" data-bs-target="#formModal">Añadir Producto</button>
+
+        <!-- Modal para agregar producto -->
+        <div class="modal fade" id="formModal" tabindex="-1" aria-labelledby="formModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="formModalLabel">Añadir Producto</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Formulario dentro del modal -->
+                        <form id="form-producto">
+                            <div class="form-group">
+                                <label for="nombre">Nombre:</label>
+                                <input type="text" id="nombre" name="nombre" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="descripcion">Descripción:</label>
+                                <textarea id="descripcion" name="descripcion" class="form-control" required></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="precio">Precio:</label>
+                                <input type="number" id="precio" name="precio" class="form-control" required step="0.01">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="imagen">Imagen (URL):</label>
+                                <input type="url" id="imagen" name="imagen" class="form-control">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="stock">Stock:</label>
+                                <input type="number" id="stock" name="stock" class="form-control" required>
+                            </div>
+
+                            <button type="submit" class="btn btn-success btn-block mt-3">Agregar Producto</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de Productos -->
+        <table class="table mt-4">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Precio</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in productos %}
+                <tr>
+                    <td>{{ producto.id }}</td>
+                    <td>{{ producto.nombre }}</td>
+                    <td>{{ producto.descripcion }}</td>
+                    <td>{{ producto.precio }}</td>
+                    <td>{{ producto.estado|yesno:"Activo,Inactivo" }}</td>
+                    <td>
+                        <a href="#" class="btn btn-warning">Editar</a>
+                        <form action="{% url 'producto_detail' producto.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">Desabilitar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3>Administración de Usuarios</h3>
+
+        <!-- Tabla de Usuarios -->
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Usuario</th>
+                    <th>Email</th>
+                    <th>Rol</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in usuarios %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.is_staff|yesno:"Staff,Normal" }}</td>
+                    <td>
+                        <form action="{% url 'user_admin' user.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-info">Cambiar Rol</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
+
+    <script>
+        // Mostrar el formulario al hacer clic en "Añadir Producto"
+        document.querySelector('.add-product').addEventListener('click', function() {
+            // Mostrar el modal con el formulario
+            const modal = new bootstrap.Modal(document.getElementById('formModal'));
+            modal.show();
+        });
+
+        // Puedes agregar más lógica para manejar el envío del formulario aquí
+        document.getElementById('form-producto').addEventListener('submit', function(event) {
+            event.preventDefault();  // Prevenir el envío por defecto del formulario
+            const formData = new FormData(this);
+
+            // Aquí iría el código para enviar los datos al backend (por ejemplo, usando fetch)
+            console.log('Formulario enviado:', formData);
+
+            // Luego de enviar los datos, cerrar el modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('formModal'));
+            modal.hide();
+        });
+    </script>
+</body>
+</html>
