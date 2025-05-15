@@ -136,10 +136,9 @@ def eliminar_o_disminuir_producto(request, detalle_id):
         if detalle.cantidad_producto == 1:
             detalle.delete()
             venta = detalle.id_venta
-            venta.save()
             venta.total_venta = sum(d.subtotal for d in venta.carrito_detalle.all())  # Aseguramos que la relación esté correcta
-
-            return redirect('vista_carrito')
+            venta.save()
+            return Response({"message": "Producto eliminado del carrito", "total_carrito": venta.total_venta})
 
         # Si la cantidad es mayor a 1, decrementamos la cantidad
         detalle.cantidad_producto -= 1
@@ -155,7 +154,6 @@ def eliminar_o_disminuir_producto(request, detalle_id):
             "subtotal_venta": detalle.subtotal,
             "total_carrito": venta.total_venta
         })
-
     return Response({"detail": "Usuario no autenticado."}, status=status.HTTP_401_UNAUTHORIZED)
 
 @api_view(['POST'])
@@ -170,25 +168,21 @@ def actualizar_cantidad_producto(request, detalle_id):
         nueva_cantidad = request.data.get('cantidad_producto')
 
         if nueva_cantidad <= 0:
-            return Response({"detail": "La cantidad debe ser mayor a cero."}, status=status.HTTP_400_BAD_REQUEST)
+            # Si la cantidad es menor a 1, eliminamos el producto
+            detalle.delete()
+            venta = detalle.id_venta
+            venta.total_venta = sum(d.subtotal for d in venta.carrito_detalle.all())
+            venta.save()
+            return Response({"message": "Producto eliminado del carrito.", "total_carrito": venta.total_venta})
 
         # Verificar si la cantidad es mayor al stock disponible
         if nueva_cantidad > detalle.producto.stock:
             return Response({"detail": f"No hay suficiente stock. Solo quedan {detalle.producto.stock} unidades disponibles."},
                              status=status.HTTP_400_BAD_REQUEST)
 
-        # Si la cantidad es 1, eliminamos el producto
-        if nueva_cantidad == 1:
-            detalle.delete()
-            venta = detalle.id_venta
-            venta.total_venta = sum(d.subtotal for d in venta.carrito_detalle.all())
-            venta.save()
-
-            return Response({"message": "Producto eliminado del carrito.", "total_carrito": venta.total_venta})
-
         # Actualizamos la cantidad y el subtotal
         detalle.cantidad_producto = nueva_cantidad
-        detalle.subtotal = detalle.producto.precio * nueva_cantidad
+        detalle.subtotal = detalle.producto.precio * nueva_cantidad  # Aquí calculamos el nuevo subtotal
         detalle.save()
 
         # Actualizamos el total de la venta
@@ -197,8 +191,7 @@ def actualizar_cantidad_producto(request, detalle_id):
         venta.save()
 
         return Response({
-            "subtotal_venta": detalle.subtotal,
+            "subtotal_total": detalle.subtotal,  # Subtotal calculado correctamente
             "total_carrito": venta.total_venta
         })
-
     return Response({"detail": "Usuario no autenticado."}, status=status.HTTP_401_UNAUTHORIZED)

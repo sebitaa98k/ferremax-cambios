@@ -78,7 +78,13 @@
         <div class="d-flex justify-content-end mt-3">
             <h3>Total Carrito: ${{ total_carrito }}</h3>
         </div>
+
+        <div>
+            <button type="submit" class="btn btn-success">Pagar</button>
+        </div>
+
     </div>
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq"
@@ -87,6 +93,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Función para obtener la cookie CSRF
+
             function getCookie(name) {
                 let cookieValue = null;
                 if (document.cookie && document.cookie !== "") {
@@ -127,7 +134,7 @@
                     // ✅ Actualiza subtotal en la tabla
                     const fila = document.getElementById(`product-${detalleId}`);
                     const celdas = fila.querySelectorAll('td');
-                    celdas[3].innerText = `$${data.subtotal_venta}`;
+                    celdas[3].innerText = `$${data.subtotal_total}`;
 
                     // ✅ Actualiza el total del carrito
                     document.querySelector('.d-flex h3').innerText = `Total Carrito: $${data.total_carrito}`;
