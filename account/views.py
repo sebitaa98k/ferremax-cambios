@@ -84,11 +84,13 @@ def Login_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
 
-        
-        user = authenticate(username=username, password= password)
-        login(request, user)
+        user = authenticate(username=username, password=password)
 
-        if not Venta_productos.objects.filter(id_usuario=user, estado_venta='carrito').exists():
+        if user is not None:
+            login(request, user)
+
+            # Asegura carrito creado al iniciar sesión
+            if not Venta_productos.objects.filter(id_usuario=user, estado_venta='carrito').exists():
                 Venta_productos.objects.create(
                     id_usuario=user,
                     fecha_transaccion=timezone.now(),
@@ -96,12 +98,14 @@ def Login_view(request):
                     estado_venta='carrito'
                 )
 
-
-        if user.is_staff:
-                return redirect('admin-index')  # Redirige al panel de administración
-        else:
+            if user.is_staff:
+                return redirect('admin-index')
+            else:
                 return redirect('/')
-    
+        else:
+            messages.error(request, 'El usuario no existe o la contraseña es incorrecta.')
+            return redirect('login')  # recarga con error
+
     return render(request, 'account/login.html')
 
 

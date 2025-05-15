@@ -7,7 +7,12 @@ from home.models import Producto
 from django.contrib.auth.decorators import login_required
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import render, redirect
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from django.utils import timezone
+from transbank.common.options import WebpayOptions
+from transbank.common.integration_type import IntegrationType
+from transbank.webpay.webpay_plus.transaction import Transaction
 from .serializers import VentaSerializer, CarritoDetalleSerializer
 
 def vista_carrito(request):
@@ -178,7 +183,7 @@ def actualizar_cantidad_producto(request, detalle_id):
         # Verificar si la cantidad es mayor al stock disponible
         if nueva_cantidad > detalle.producto.stock:
             return Response({"detail": f"No hay suficiente stock. Solo quedan {detalle.producto.stock} unidades disponibles."},
-                             status=status.HTTP_400_BAD_REQUEST)
+            status=status.HTTP_400_BAD_REQUEST)
 
         # Actualizamos la cantidad y el subtotal
         detalle.cantidad_producto = nueva_cantidad
@@ -195,3 +200,44 @@ def actualizar_cantidad_producto(request, detalle_id):
             "total_carrito": venta.total_venta
         })
     return Response({"detail": "Usuario no autenticado."}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+@api_view(['POST'])
+def pagar_webpy(request):
+    if not request.user.is_authenticated:
+        return Response({'Error':'Debes iniciar sesion'},status=401)
+    
+    venta = Venta_productos.objects.filter(id_usuario=request.user, estado_venta='carrito').first()
+    if not venta:
+        return Response({'Error':'No tienes carrito antiguo'}, status=404)
+    
+    venta.save()
+
+    options = WebpayOptions(
+        commerce_code='597055555532',
+        api_key='579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C',
+        integration_type=IntegrationType.TEST
+    )
+
+    tx = Transaction(options)
+    import time
+    buy_order = f"{venta.id}-{int(time.time())}"
+    return_url = request.build_absolute_uri('/api/webpay/respuesta/')
+
+    response = tx.create(
+        buy_order=buy_order,
+        session_id=str(request.user.id),
+        amount=venta.total_venta,
+        return_url=return_url
+    )
+
+    venta.webpay_transaction_id = response['token']
+    venta.save()
+
+    return redirect(response['url']+ "?tokwn_ws=" + response['token'])
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def respuesta_pago_webpay(request):
+    token = request.POST.get("token_ws") or request.GET.get("token_ws")
+    

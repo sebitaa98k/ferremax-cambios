@@ -67,8 +67,9 @@
                         <button class="btn btn-sm btn-secondary" id="increment-{{ item.id }}" data-id="{{ item.id }}"
                             data-cantidad="{{ item.cantidad_producto }}">+</button>
                     </td>
-                    <td>${{ item.producto.precio }}</td>
-                    <td>${{ item.subtotal_venta }}</td>
+                
+                    <td>${{ item.producto.precio|floatformat:0 }}</td>
+                    <td>${{ item.subtotal_venta|floatformat:0 }}</td>
 
                 </tr>
                 {% endfor %}
@@ -76,7 +77,7 @@
         </table>
 
         <div class="d-flex justify-content-end mt-3">
-            <h3>Total Carrito: ${{ total_carrito }}</h3>
+            <h3>Total Carrito: ${{ total_carrito|floatformat:0 }}</h3>
         </div>
 
         <div>
@@ -188,31 +189,32 @@
             });
         });
     </script>
-<!-- Toast de éxito -->
-<div class="toast-container position-fixed top-0 end-0 p-3">
-    <div id="toast-success" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-            <strong class="me-auto">✔️ Actualizado</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
-        </div>
-        <div class="toast-body" id="toast-success-body">
-            Cantidad actualizada.
+    <!-- Toast de éxito -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="toast-success" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">✔️ Actualizado</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+            </div>
+            <div class="toast-body" id="toast-success-body">
+                Cantidad actualizada.
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Toast de error -->
-<div class="toast-container position-fixed top-0 end-0 p-3">
-    <div id="toast-error" class="toast bg-danger text-white" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header bg-danger text-white">
-            <strong class="me-auto">❌ Error</strong>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Cerrar"></button>
-        </div>
-        <div class="toast-body" id="toast-error-body">
-            Hubo un problema.
+    <!-- Toast de error -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="toast-error" class="toast bg-danger text-white" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header bg-danger text-white">
+                <strong class="me-auto">❌ Error</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="toast-body" id="toast-error-body">
+                Hubo un problema.
+            </div>
         </div>
     </div>
-</div>
 
 </body>
 
