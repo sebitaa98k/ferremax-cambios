@@ -288,8 +288,20 @@ def respuesta_pago_webpay(request):
             venta.total_venta = sum(d.subtotal_venta for d in venta.carrito_detalle.all())
             venta.save()
 
+            for detalle in venta.carrito_detalle.all():
+                producto = detalle.producto
+                producto.stock -= detalle.cantidad_producto
+
+
+                if producto.stock <= 0:
+                    producto.stock = 0  # por si acaso quedó negativo
+                    producto.estado = False
+
+                producto.save()
+
 
             mensaje = "✅ Pago realizado con éxito"
+
         else:
             venta.webpay_payment_status = 'failed'
             venta.save()

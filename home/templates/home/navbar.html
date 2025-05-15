@@ -15,11 +15,14 @@
 
         {% if request.path != '/login/' and request.path != '/register/' and request.path != '/admin-index/' and 'editar_producto' not in request.path and 'webpay/respuesta' not in request.path %}
 
-          <li class="nav-item">
+          {% if request.path != '/'%}
+            <li class="nav-item">
             <form class="d-flex" role="search">
               <input class="form-control me-2" type="search" placeholder="Buscar Producto" aria-label="Search">
             </form>
-          </li>
+            </li>
+
+          {% endif %}
 
           <li class="nav-item">
             <a class="nav-link active" href="{% url 'catalogo' %}">Catalogo</a>
