@@ -13,7 +13,7 @@
         
         
 
-        {% if request.path != '/login/' and request.path != '/register/' and request.path != '/admin-index/' and 'editar_producto' not in request.path %}
+        {% if request.path != '/login/' and request.path != '/register/' and request.path != '/admin-index/' and 'editar_producto' not in request.path and 'webpay/respuesta' not in request.path %}
 
           <li class="nav-item">
             <form class="d-flex" role="search">
@@ -33,7 +33,7 @@
         {% if request.user.is_authenticated %}
           <!-- Si el usuario está autenticado, mostramos el carrito y catalogo -->
 
-          {% if request.path != '/login/' and request.path != '/register/' and request.path != '/admin-index/' and 'editar_producto' not in request.path %}
+          {% if request.path != '/login/' and request.path != '/register/' and request.path != '/admin-index/' and 'editar_producto' not in request.path and 'webpay/respuesta' not in request.path %}
             <li class="nav-item">
                 <a class="nav-link active" href="{% url 'vista_carrito' %}">Carrito</a>
             </li>

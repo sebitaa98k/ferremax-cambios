@@ -204,6 +204,7 @@ def actualizar_cantidad_producto(request, detalle_id):
 
 @api_view(['POST'])
 def pagar_webpy(request):
+    print('Redirijiendo')
     if not request.user.is_authenticated:
         return Response({'Error':'Debes iniciar sesion'},status=401)
     
@@ -231,13 +232,75 @@ def pagar_webpy(request):
         return_url=return_url
     )
 
+    # Imprime la respuesta completa de Webpay
+    print("Response de Webpay:", response)
+
+    # Verifica que la respuesta contenga la URL correcta
+    if 'url' in response:
+        print("Webpay URL:", response['url'])
+        return redirect(response['url'] + "?token_ws=" + response['token'])
+    else:
+        print("Error: No se recibió la URL de Webpay")
+        return Response({"error": "No se pudo obtener la URL de Webpay"}, status=500)
+
     venta.webpay_transaction_id = response['token']
     venta.save()
 
     return redirect(response['url']+ "?tokwn_ws=" + response['token'])
 
+
+
+
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
 def respuesta_pago_webpay(request):
     token = request.POST.get("token_ws") or request.GET.get("token_ws")
-    
+
+
+    if not token:
+        return redirect('/carrito/?mensaje=Transacción cancelada.')
+
+
+
+    options = WebpayOptions(
+        commerce_code='597055555532',
+        api_key='579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C',
+        integration_type=IntegrationType.TEST
+    )
+
+    # Verificar el estado del pago con el token recibido
+    tx = Transaction(options)
+
+    try:
+        response = tx.commit(token)
+        id_venta = str(response['buy_order']).split("-")[0]
+        venta = Venta_productos.objects.get(id=int(id_venta))
+
+        if not venta.carrito_detalle.exists():
+            return HttpResponse("No puedes completar el pago: el carrito está vacío.")
+
+        if response['status'] == 'AUTHORIZED':
+            venta.estado_venta = 'pagado'
+            venta.fecha_compra = timezone.now()
+            venta.webpay_payment_status = 'completed'
+
+            # ✅ Calcular total antes de guardar
+            venta.total_venta = sum(d.subtotal_venta for d in venta.carrito_detalle.all())
+            venta.save()
+
+
+            mensaje = "✅ Pago realizado con éxito"
+        else:
+            venta.webpay_payment_status = 'failed'
+            venta.save()
+            mensaje = "❌ Pago rechazado"
+    except Exception as e:
+        return HttpResponse(f"<b>Error al procesar la transacción:</b> {e}")
+
+    return render(request, 'carrito/respuesta_compra.html', {
+        'mensaje': mensaje,
+        'venta': venta,
+        'response': response
+    })
+
+

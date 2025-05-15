@@ -80,9 +80,21 @@
             <h3>Total Carrito: ${{ total_carrito|floatformat:0 }}</h3>
         </div>
 
-        <div>
-            <button type="submit" class="btn btn-success">Pagar</button>
-        </div>
+        
+        {% if carrito and total_carrito > 0 %}
+
+            <div>
+                <form action="/api/webpay/iniciar/" method="POST">
+                    {% csrf_token %}
+
+                    <button type="submit" class="btn btn-success mt-3">
+                        <i class="fas fa-credit-card me-2"></i> Pagar con WebPay
+                    </button>
+
+                </form>
+            </div>
+
+        {% endif %}
 
     </div>
 
