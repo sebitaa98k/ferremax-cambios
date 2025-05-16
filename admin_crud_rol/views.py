@@ -5,6 +5,7 @@ from rest_framework import status
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from home.models import Producto
+from carrito.models import Venta_productos
 from home.serializers import ProductoSerializer
 from django.contrib.auth.decorators import user_passes_test, login_required
 from rest_framework.decorators import api_view
@@ -71,6 +72,11 @@ def api_lista_productos(request):
     return Response(serializer.data)
 
 
+
+
+
+# ----------USUARIOS---------
+
 class UserAdminView(APIView):
     def put(self, request, pk):
             # Cambiar los permisos de un usuario a 'staff'
@@ -85,9 +91,6 @@ class UserAdminView(APIView):
 def cambiar_rol(request, id):
     if not request.user.is_staff:
         return JsonResponse({'error': 'No tienes permisos para modificar productos.'}, status=403)
-    
-
-    
 
     try:
         usuario = User.objects.get(id=id)
@@ -96,3 +99,12 @@ def cambiar_rol(request, id):
         return JsonResponse({'mensaje': 'Estado del usuario actualizado correctamente', 'Rol': usuario.is_staff}, status=200)
     except Producto.DoesNotExist:
         return JsonResponse({'error': 'Rol no encontrado'}, status=404)
+    
+
+
+
+# ----------Ventas---------
+@user_passes_test(lambda u: u.is_staff)
+def VentasView(request):
+    ventas = Venta_productos.objects.filter(estado_venta='pagado').select_related('id_usuario')
+    return render(request, 'admin/admin-ventas.html', {'ventas': ventas})

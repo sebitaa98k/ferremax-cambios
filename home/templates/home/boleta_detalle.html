@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boleta #{{ venta.id }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light p-4">
+
+    <div class="container bg-white p-5 rounded shadow-sm">
+        <h2 class="mb-4">🧾 Boleta de Compra </h2>
+
+        <p><strong>Cliente:</strong> {{ venta.id_usuario.username }}</p>
+        <p><strong>Fecha:</strong> {{ venta.fecha_transaccion }}</p>
+        <p><strong>Total:</strong> ${{ venta.total_venta }}</p>
+
+        <hr>
+
+        <h4>🛒 Productos</h4>
+        <ul class="list-group mb-3">
+            {% for detalle in detalles %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ detalle.producto.nombre }} (x{{ detalle.cantidad_producto }})
+                    <span>${{ detalle.subtotal }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <a href="/" class="btn btn-dark mt-3">Volver al inicio</a>
+    </div>
+
+</body>
+</html>

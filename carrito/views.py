@@ -204,16 +204,15 @@ def actualizar_cantidad_producto(request, detalle_id):
 
 @api_view(['POST'])
 def pagar_webpy(request):
-    print('Redirijiendo')
+    print('Redirigiendo')
+
     if not request.user.is_authenticated:
-        return Response({'Error':'Debes iniciar sesion'},status=401)
+        return Response({'Error': 'Debes iniciar sesion'}, status=401)
     
     venta = Venta_productos.objects.filter(id_usuario=request.user, estado_venta='carrito').first()
     if not venta:
-        return Response({'Error':'No tienes carrito antiguo'}, status=404)
+        return Response({'Error': 'No tienes carrito antiguo'}, status=404)
     
-    venta.save()
-
     options = WebpayOptions(
         commerce_code='597055555532',
         api_key='579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C',
@@ -232,21 +231,22 @@ def pagar_webpy(request):
         return_url=return_url
     )
 
-    # Imprime la respuesta completa de Webpay
     print("Response de Webpay:", response)
 
-    # Verifica que la respuesta contenga la URL correcta
     if 'url' in response:
         print("Webpay URL:", response['url'])
+
+        # ✅ Guardar el token antes de redirigir
+        venta.webpay_transaction_id = response['token']
+        venta.save()
+
         return redirect(response['url'] + "?token_ws=" + response['token'])
+
     else:
         print("Error: No se recibió la URL de Webpay")
         return Response({"error": "No se pudo obtener la URL de Webpay"}, status=500)
 
-    venta.webpay_transaction_id = response['token']
-    venta.save()
 
-    return redirect(response['url']+ "?tokwn_ws=" + response['token'])
 
 
 
