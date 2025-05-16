@@ -41,12 +41,9 @@
 </head>
 
 <body>
-
     {% include 'home/navbar.html' %}
-
     <div class="container">
         <h1 class="text-center mb-4">Mi Carrito</h1>
-
         <table class="table table-striped table-bordered shadow-sm rounded">
             <thead class="thead-dark">
                 <tr>
@@ -67,41 +64,42 @@
                         <button class="btn btn-sm btn-secondary" id="increment-{{ item.id }}" data-id="{{ item.id }}"
                             data-cantidad="{{ item.cantidad_producto }}">+</button>
                     </td>
-                
-                    <td>${{ item.producto.precio|floatformat:0 }}</td>
-                    <td>${{ item.subtotal_venta|floatformat:0 }}</td>
-
+                    <td class="precio" data-precio="{{ item.producto.precio }}"></td>
+                    <td class="subtotal" data-subtotal="{{ item.subtotal_venta }}"></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-
         <div class="d-flex justify-content-end mt-3">
-            <h3>Total Carrito: ${{ total_carrito|floatformat:0 }}</h3>
+            <h3 id="total-carrito" data-total="{{ total_carrito }}">Total Carrito: ${{ total_carrito|floatformat:0 }}
+            </h3>
         </div>
-
-        
         {% if carrito and total_carrito > 0 %}
+        <div>
+            <form action="/api/webpay/iniciar/" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success mt-3">
+                    <i class="fas fa-credit-card me-2"></i> Pagar con WebPay
+                </button>
+            </form>
+            <form action="{% url 'vaciar_carrito' %}" method="POST"
+                onsubmit="return confirm('¿Estás seguro de que deseas vaciar el carrito?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">
+                    🧹 Vaciar carrito
+                </button>
+            </form>
 
-            <div>
-                <form action="/api/webpay/iniciar/" method="POST">
-                    {% csrf_token %}
-
-                    <button type="submit" class="btn btn-success mt-3">
-                        <i class="fas fa-credit-card me-2"></i> Pagar con WebPay
-                    </button>
-
-                </form>
-            </div>
-
+        </div>
         {% endif %}
-
     </div>
-
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq"
         crossorigin="anonymous"></script>
+
+
+
+
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -199,6 +197,56 @@
                     }
                 });
             });
+
+            // Conversión de moneda en el carrito
+            const monedaCarrito = localStorage.getItem('moneda') || 'CLP';
+
+            function convertirMoneda(monto, tasa, moneda) {
+                if (moneda === 'CLP') {
+                    return `$${monto.toFixed(0)} CLP`;
+                } else {
+                    return `$${(monto * tasa).toFixed(2)} ${moneda}`;
+                }
+            }
+
+            async function aplicarConversionMoneda() {
+                if (monedaCarrito === 'CLP') {
+                    document.querySelectorAll('.precio').forEach(td => {
+                        const base = parseFloat(td.getAttribute('data-precio'));
+                        td.innerText = convertirMoneda(base, 1, 'CLP');
+                    });
+                    document.querySelectorAll('.subtotal').forEach(td => {
+                        const base = parseFloat(td.getAttribute('data-subtotal'));
+                        td.innerText = convertirMoneda(base, 1, 'CLP');
+                    });
+                    const total = parseFloat(document.getElementById('total-carrito').getAttribute('data-total'));
+                    document.getElementById('total-carrito').innerText = `Total Carrito: ${convertirMoneda(total, 1, 'CLP')}`;
+                } else {
+                    try {
+                        const res = await fetch(`/api/tasa/?base=CLP&target=${monedaCarrito}`);
+                        const data = await res.json();
+                        const tasa = data.tasa;
+
+                        document.querySelectorAll('.precio').forEach(td => {
+                            const base = parseFloat(td.getAttribute('data-precio'));
+                            td.innerText = convertirMoneda(base, tasa, monedaCarrito);
+                        });
+                        document.querySelectorAll('.subtotal').forEach(td => {
+                            const base = parseFloat(td.getAttribute('data-subtotal'));
+                            td.innerText = convertirMoneda(base, tasa, monedaCarrito);
+                        });
+                        const total = parseFloat(document.getElementById('total-carrito').getAttribute('data-total'));
+                        document.getElementById('total-carrito').innerText = `Total Carrito: ${convertirMoneda(total, tasa, monedaCarrito)}`;
+                    } catch (err) {
+                        console.error('Error al aplicar conversión de moneda:', err);
+                    }
+                }
+            }
+
+            aplicarConversionMoneda();
+
+
+
         });
     </script>
     <!-- Toast de éxito -->
@@ -227,6 +275,8 @@
             </div>
         </div>
     </div>
+
+
 
 </body>
 
