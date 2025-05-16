@@ -1,0 +1,207 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Ferremax</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static 'css/style-index.css'%}">
+</head>
+
+<body>
+    {% include 'home/navbar.html' %}
+
+    <div class="container mt-4">
+        {% block content %}{% endblock %}
+    </div>
+    <div class="mb-3 text-center">
+        <label for="monedaSelect"><strong>Moneda:</strong></label>
+        <select id="monedaSelect" class="form-select d-inline-block w-auto">
+            <option value="CLP" selected>🇨🇱 CLP</option>
+            <option value="USD">🇺🇸 USD</option>
+            <option value="EUR">🇪🇺 EUR</option>
+            <option value="BRL">🇧🇷 BRL</option>
+        </select>
+    </div>
+
+ 
+    <form method="get" class="mb-3 text-center">
+        <label for="orden">Ordenar por:</label>
+        <select name="orden" id="orden" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
+            <option value="">-- Selecciona --</option>
+            <option value="precio_asc" {% if request.GET.orden == "precio_asc" %}selected{% endif %}>Precio: Menor a Mayor
+            </option>
+            <option value="precio_desc" {% if request.GET.orden == "precio_desc" %}selected{% endif %}>Precio: Mayor a
+                Menor</option>
+            <option value="nombre_az" {% if request.GET.orden == "nombre_az" %}selected{% endif %}>Nombre: A → Z</option>
+            <option value="nombre_za" {% if request.GET.orden == "nombre_za" %}selected{% endif %}>Nombre: Z → A</option>
+        </select>
+    </form>
+
+
+    <div class="container my-5">
+        <div class="row row-cols-1 row-cols-md-5 g-4 justify-content-center">
+            {% for producto in productos %}
+            {% if producto.estado %}
+            <div class="card h-100">
+                <div class="card-body">
+                    <img src="{{ producto.imagen_url }}" class="card-img-top img-fluid" alt="{{ producto.nombre }}"
+                        style="object-fit: cover; height: 200px;">
+                    <h5 class="card-title">{{ producto.nombre }}</h5>
+                    <p class="card-text precio" data-precio="{{ producto.precio }}">
+                        {{ producto.precio|floatformat:0 }} CLP
+                    </p>
+                    <p class="card-text">Stock: {{ producto.stock }}</p>
+                    <a href="#" class="btn btn-primary add-to-cart" data-id="{{ producto.id }}">Añadir Carrito</a>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+            <div class="toast-container position-fixed top-0 end-0 p-3">
+                <!-- TOAST DE EXITO -->
+                <div class="toast-container position-fixed top-0 end-0 p-3">
+                    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header">
+                            <strong class="me-auto">¡Éxito!</strong>
+                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body d-flex justify-content-between align-items-center">
+                            <span>Producto agregado al carrito exitosamente.</span>
+                            <a href="{% url 'vista_carrito' %}"
+                                class="btn btn-sm btn-outline-light ms-3 bg-primary text-white">Ver carrito</a>
+                        </div>
+                    </div>
+                </div>
+                <!-- TOAST DE ERROR -->
+                <div class="toast-container position-fixed top-0 end-0 p-3">
+                    <div id="toast-error" class="toast bg-danger text-white" role="alert" aria-live="assertive"
+                        aria-atomic="true">
+                        <div class="toast-header bg-danger text-white">
+                            <strong class="me-auto">Error</strong>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"
+                                aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body" id="toast-error-body">
+                            Algo salió mal.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq"
+        crossorigin="anonymous"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Función para obtener el valor de la cookie por su nombre
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== "") {
+                    const cookies = document.cookie.split(";");
+                    for (let cookie of cookies) {
+                        cookie = cookie.trim();
+                        if (cookie.startsWith(name + "=")) {
+                            cookieValue = decodeURIComponent(cookie.slice(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            // Función para agregar al carrito
+            async function agregarAlCarrito(productId, quantity) {
+                const cookie = getCookie('csrftoken');
+                if (!cookie) {
+                    alert('Por favor, inicia sesión para agregar productos al carrito.');
+                    return;
+                }
+                try {
+                    const response = await fetch("/api/carrito/agregar/", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": cookie,
+                        },
+                        body: JSON.stringify({
+                            producto: productId,
+                            cantidad_producto: quantity,
+                        }),
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        const toast = new bootstrap.Toast(document.getElementById('toast'));
+                        toast.show();
+                    } else {
+                        const errorToast = new bootstrap.Toast(document.getElementById('toast-error'));
+                        document.getElementById('toast-error-body').innerText = data.detail || 'Error al agregar al carrito';
+                        errorToast.show();
+                    }
+
+                } catch (error) {
+                    console.error('Error: ', error);
+                    alert('Error al agregar el producto al carrito');
+                }
+            }
+
+            // Evento de clic para botones de "Añadir Carrito"
+            const addToCartButtons = document.querySelectorAll('.add-to-cart');
+            addToCartButtons.forEach(button => {
+                button.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    const productId = button.getAttribute('data-id');
+                    const quantity = 1;
+                    agregarAlCarrito(productId, quantity);
+                });
+            });
+
+            //Conversor de moneda
+            const selector = document.getElementById('monedaSelect');
+
+            // Aplicar moneda al cargar la página
+            if (selector && localStorage.getItem('moneda')) {
+                selector.value = localStorage.getItem('moneda');
+                selector.dispatchEvent(new Event('change'));
+            }
+
+            selector.addEventListener('change', async function () {
+                const moneda = this.value;
+                localStorage.setItem('moneda', moneda);
+
+                if (moneda === 'CLP') {
+                    document.querySelectorAll('.precio').forEach(p => {
+                        const base = parseFloat(p.getAttribute('data-precio'));
+                        p.innerText = `$${base.toFixed(0)} CLP`;
+                    });
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/tasa/?base=CLP&target=${moneda}`);
+                    const data = await response.json();
+
+                    if (data.tasa) {
+                        const tasa = data.tasa;
+                        document.querySelectorAll('.precio').forEach(p => {
+                            const base = parseFloat(p.getAttribute('data-precio'));
+                            const convertido = base * tasa;
+                            p.innerText = `$${convertido.toFixed(2)} ${moneda}`;
+                        });
+                    } else {
+                        alert("No se pudo obtener la tasa de cambio.");
+                    }
+                } catch (error) {
+                    alert("Error al contactar la API de conversión.");
+                }
+            });
+        });
+    </script>
+
+</body>
+
+</html>

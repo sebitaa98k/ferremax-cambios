@@ -1,0 +1,85 @@
+/* Body Styles */
+body {
+    background-color: #f4f5f7;
+}
+
+/* Form Styles */
+form {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Input Styles */
+.form-control {
+    border-radius: 5px;
+    padding: 12px;
+    font-size: 16px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+}
+
+/* Focus Styles */
+.form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 8px rgba(40, 167, 69, 0.2);
+}
+
+/* Button Styles */
+.btn-success, .btn-secondary {
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 5px;
+}
+
+.btn-success {
+    background-color: #28a745;
+    border: none;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: #fff;
+    text-decoration: none;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* Card Styles */
+.card {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Text Styles */
+h3 {
+    color: #333;
+    font-weight: bold;
+}
+
+/* Center Form */
+.text-center {
+    text-align: center;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .form-control {
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    .btn-success, .btn-secondary {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}
