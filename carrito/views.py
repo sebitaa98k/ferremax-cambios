@@ -316,3 +316,13 @@ def respuesta_pago_webpay(request):
     })
 
 
+
+
+@login_required
+def vaciar_carrito(request):
+    venta = Venta_productos.objects.filter(id_usuario=request.user, estado_venta='carrito').first()
+    if venta:
+        Carrito_detalle.objects.filter(id_venta=venta).delete()
+        venta.total_venta = 0
+        venta.save()
+    return redirect('vista_carrito')

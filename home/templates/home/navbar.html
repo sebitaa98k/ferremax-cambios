@@ -24,8 +24,9 @@
 
           {% if request.path == '/catalogo/'%}
             <li class="nav-item">
-            <form class="d-flex" role="search">
-              <input class="form-control me-2" type="search" placeholder="Buscar Producto" aria-label="Search">
+            <form class="d-flex" method="get" action="{% url 'catalogo' %}">
+                <input class="form-control me-2" type="search" name="buscar" placeholder="Buscar Producto" value="{{ request.GET.buscar }}">
+                <button class="btn btn-outline-light" type="submit">Buscar</button>
             </form>
             </li>
 

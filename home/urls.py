@@ -7,4 +7,5 @@ urlpatterns = [
     path('catalogo/',views.listar_productos, name='catalogo'),
     path('historia_compras/',views.HistorialComprasView, name='historial_compras'),
     path('boleta_compras/<int:id>/', views.BoletaVenta, name='boleta_compra'),
+    path('api/tasa/', views.obtener_tasa, name='tasa_cambio'),
 ]
