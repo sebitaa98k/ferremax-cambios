@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Producto</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+
+    {% include 'home/navbar.html' %}
+
+    <div class="container mt-5">
+        <h3 class="text-center mb-4">Editar Producto</h3>
+
+        <div class="card shadow-sm p-4 rounded">
+            <form id="formEditar">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="nombre" class="form-label">Nombre del Producto</label>
+                    <input type="text" class="form-control" id="nombre" required />
+                </div>
+                <div class="mb-3">
+                    <label for="precio" class="form-label">Precio</label>
+                    <input type="number" class="form-control" id="precio" required />
+                </div>
+                <div class="mb-3">
+                    <label for="descripcion" class="form-label">Descripción</label>
+                    <textarea class="form-control" id="descripcion" rows="3" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="imagen" class="form-label">URL de Imagen</label>
+                    <input type="url" class="form-control" id="imagen" />
+                </div>
+                <div class="mb-3">
+                    <label for="stock" class="form-label">Stock</label>
+                    <input type="number" class="form-control" id="stock" required />
+                </div>
+                <div class="text-center">
+                    <button type="submit" class="btn btn-success me-2">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                    <a href="/productos/crud/" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const idProducto = window.location.pathname.split("/").filter(p => p).pop();
+
+        fetch('/api/lista_producto/')
+        .then(res => res.json())
+        .then(productos => {
+            const producto = productos.find(p => p.id == idProducto);
+            if (!producto) return alert("Producto no encontrado");
+
+            document.getElementById("nombre").value = producto.nombre;
+            document.getElementById("precio").value = producto.precio;
+            document.getElementById("descripcion").value = producto.descripcion;
+            document.getElementById("imagen").value = producto.imagen_url;
+            document.getElementById("stock").value = producto.stock;
+        });
+
+        document.getElementById("formEditar").addEventListener("submit", function(e) {
+            e.preventDefault();
+
+            const datos = {
+                nombre: document.getElementById("nombre").value,
+                precio: document.getElementById("precio").value,
+                descripcion: document.getElementById("descripcion").value,
+                imagen_url: document.getElementById("imagen").value,
+                stock: document.getElementById("stock").value,
+            };
+
+            fetch(`/api/editar_producto/${idProducto}/`, {
+                method: 'PUT',
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrftoken
+                },
+                credentials: "same-origin",
+                body: JSON.stringify(datos)
+            })
+            .then(res => {
+                if (res.ok) {
+                    alert("Producto actualizado correctamente");
+                    window.location.href = "/admin-index/";
+                } else {
+                    return res.json().then(data => {
+                        alert("Error al actualizar: " + JSON.stringify(data));
+                    });
+                }
+            })
+            .catch(err => {
+                console.error("Error al enviar datos:", err);
+                alert("Error al conectar con el servidor");
+            });
+        });
+    </script>
+
+</body>
+</html>

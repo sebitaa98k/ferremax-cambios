@@ -1,0 +1,1 @@
+# esto lo cree para hacer la vista del api rest, que al final lo hice en el views

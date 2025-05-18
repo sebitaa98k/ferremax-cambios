@@ -1,0 +1,62 @@
+.login-container {
+    background-color: #1b1b1c;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    margin: 50px auto;  /* Margen superior de 50px para separarlo del navbar y centrado */
+}
+
+.login-container h3 {
+    color: white;
+    text-align: center;
+    margin-bottom: 30px;  /* Espacio extra entre el título y el formulario */
+}
+
+.form-label {
+    color: rgb(255, 255, 255);  /* Texto blanco para las etiquetas */
+    font-weight: bold;  /* Hacer que las etiquetas sean negritas */
+    margin-bottom: 5px;  /* Espacio debajo de las etiquetas */
+}
+
+.form-control {
+    background-color: #f7f7f7;  /* Fondo claro para los campos de entrada */
+    color: #333;  /* Texto oscuro */
+    border-color: #ddd;  /* Bordes claros */
+    border-radius: 5px;
+    padding: 12px;  /* Espacio dentro de los campos */
+    margin-bottom: 20px;  /* Espacio entre los campos */
+    width: 100%;
+    font-size: 14px;
+}
+
+.form-control:focus {
+    border-color: #3498db;  /* Cambio de borde al estar enfocado */
+    outline: none;
+}
+
+.btn-primary {
+    background-color: #000000;  /* Color del fondo del botón */
+    border-color: #515253;  /* Color del borde */
+    color: rgb(255, 255, 255);  /* Texto blanco */
+    width: 100%;
+    padding: 12px;  /* Padding para el botón */
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background-color: #222324;  /* Fondo más oscuro cuando el botón se toca */
+    border-color: #555555;
+}
+
+.alert {
+    color: white;
+    background-color: #e74c3c;  /* Color de fondo rojo para los errores */
+    border-radius: 5px;
+    padding: 15px;
+    margin-top: 20px;
+}
